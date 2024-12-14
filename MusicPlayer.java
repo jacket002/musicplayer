@@ -1,5 +1,6 @@
 import java.io.File;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.io.IOException;
 
 
@@ -8,22 +9,37 @@ import javax.sound.sampled.*;
 
 public class MusicPlayer {
 	
-	private int songIndex = 0;
-	private Clip clip;
+	private int fileIndex = 0;
+	public Clip clip;
 	
-	public String CURRENTSONG;
-
+	public String CURRENTFILE;
+	public String fDuration;
+	public double drtMilSecs; 
+	
     public void load() throws LineUnavailableException, IOException, UnsupportedAudioFileException {
 		
-    	File tracks = new File("C:\\Users\\Jack\\eclipse-workspace\\Music app\\tracks");
+    	// creates new file array with selected tracks
+    	File tracks = new File("C:\\Users\\jacke\\eclipse-workspace\\Music app\\tracks");
 		File tracksList[] = tracks.listFiles();
 		
 		index(tracksList);
 		
-		AudioInputStream audioStream = AudioSystem.getAudioInputStream(tracksList[songIndex]);
+		// grabs audio file from tracklist in given index and gets its audio stream and format
+		AudioInputStream audioStream = AudioSystem.getAudioInputStream(tracksList[fileIndex]);
+		AudioFormat format = audioStream.getFormat();
+		
+		// converts the framelength divided by the framerate of the audio file into the duration of the file in seconds (double).
+		long frames = audioStream.getFrameLength();
+		double durationInSeconds = (frames+0.0) / format.getFrameRate();
+		
+		// turns audiostream file into clip
 		clip = AudioSystem.getClip();
 		clip.open(audioStream);
-		CURRENTSONG = tracksList[songIndex].getName();
+		
+		// class variable declarations, where fDuration is durationInSeconds converted into minutes then formatted with its remaining seconds.
+		CURRENTFILE = tracksList[fileIndex].getName();
+		fDuration = (((long) durationInSeconds / 60) % 60)+":"+(long)durationInSeconds%60;
+		drtMilSecs = durationInSeconds*Math.pow(10, 3);
     	
 	}
 
@@ -31,32 +47,36 @@ public class MusicPlayer {
 		clip.stop();
 	}
 	
+	
 	public void play() {
 		clip.start();
 	}
 	
+	public void setFrame(int framePos) {
+		clip.setFramePosition(framePos);
+	}
+	
 	public int index (File tracksList[]) {
 			
-		if (songIndex == -1) {
-				songIndex = (tracksList.length)-1;
+		if (fileIndex == -1) {
+			    fileIndex = (tracksList.length)-1;
 		}
-		
-		else if (songIndex >= tracksList.length) {
-				songIndex = 0;
+		else if (fileIndex >= tracksList.length) {
+			    fileIndex = 0;
 		} 
-		return songIndex;
-		}
+		return fileIndex;
+
+	}
 		
-	
 	public void playNext() throws LineUnavailableException, IOException, UnsupportedAudioFileException {
 		if (clip.isActive()) {
 			stop();
-			songIndex = songIndex + 1;
+			fileIndex = fileIndex + 1;
 			load();
 			play();
 		} else {
 			stop();
-			songIndex = songIndex + 1;
+			fileIndex = fileIndex + 1;
 			load();
 		}
 	}
@@ -64,12 +84,12 @@ public class MusicPlayer {
 	public void playPrev() throws LineUnavailableException, IOException, UnsupportedAudioFileException {
 		if (clip.isActive()) {
 			stop();
-			songIndex = songIndex - 1;
+			fileIndex = fileIndex - 1;
 			load();
 			play();
 		} else {
 			stop();
-			songIndex = songIndex - 1;
+			fileIndex = fileIndex - 1;
 			load();
 		}
 	}
@@ -77,7 +97,14 @@ public class MusicPlayer {
 	public void reset() { 
 		clip.setMicrosecondPosition(0);
 	}
-
+	
+	public String volume() {
+		String clipVolume;
+		clipVolume = String.valueOf(clip.getLevel());
+		return clipVolume;
+	}
+	
+		
 	public static void main(String[] args) throws LineUnavailableException, IOException, UnsupportedAudioFileException {
 
 		MusicPlayer player = new MusicPlayer();	
@@ -97,13 +124,13 @@ public class MusicPlayer {
 		while(!userInput.equals("quit")) {
 			
 			System.out.println("----------------------");
-			System.out.println("Selected Track: "+player.CURRENTSONG);
+			System.out.println("Selected Track: "+player.CURRENTFILE+" "+player.clip.getFrameLength());
 			System.out.println("play -- play song");
 			System.out.println("stop -- stop song");
 			System.out.println("reset -- reset song");
 			System.out.println("next -- next song");
 			System.out.println("last -- previous song");
-			System.out.println("quit -- quit song");
+			System.out.println("quit -- quit player");
 			System.out.print("Enter: ");
 			
 			userInput = scanner.next();
